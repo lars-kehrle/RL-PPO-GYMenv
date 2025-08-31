@@ -17,7 +17,7 @@ class CarRacingNetwork(nn.Module):
         self.high = high.to(device)
         self.image_encoder = nn.Sequential(
             #96 96 3
-            nn.Conv2d(3, 32, 8, stride=4),
+            nn.Conv2d(12, 32, 8, stride=4),
             nn.ReLU(),
             nn.Conv2d(32, 64, 4, stride=2),
             nn.ReLU(),
@@ -37,27 +37,30 @@ class CarRacingNetwork(nn.Module):
 
         self.name = "CartRacing"
 
+    def preprocess_obs(self, obs):
+        if obs.ndim == 4:
+            obs = obs.permute(0, 3, 1, 2)  # (stack_size, C, H, W)
+            obs = obs.reshape(-1, 96, 96).unsqueeze(0)
+
+        if obs.ndim == 5:
+            obs = obs.permute(0, 1, 4, 2, 3)
+            batch_size, stack_size, C, H, W = obs.shape
+            obs = obs.reshape(batch_size, stack_size * C, 96, 96)
+        obs = obs.float() / 255.0
+        return obs
+
     def actor_forward(self, obs):
-        x = obs.float() / 255.0
+        x = self.preprocess_obs(obs)
         assert torch.isfinite(x).all(), "Input to image_encoder contains NaN or Inf"
         assert not torch.isnan(x).any(), "Input to image_encoder contains NaN or Inf"
-        if x.ndim == 3:
-            x = x.permute(2, 0, 1).unsqueeze(0)    # HWC -> CHW for single image
-        elif x.ndim == 4:
-            x = x.permute(0, 3, 1, 2)  # NHWC -> NCHW for batch
         x = self.image_encoder(x)
         x = self.fc_shared(x)
         log_std = self.actor_logstd
-        mean = self.actor_mean(x)
+        mean = self.actor_mean(x).squeeze()
         return mean, log_std
 
     def critic_forward(self, obs):
-        x = obs.float() / 255.0
-        if x.ndim == 3:
-            x = x.permute(2, 0, 1).unsqueeze(0)   # HWC -> CHW for single image
-        elif x.ndim == 4:
-            x = x.permute(0, 3, 1, 2)# NHWC -> NCHW for batch  # encoder frozen
-        # In critic_forwar
+        x = self.preprocess_obs(obs)
         x = self.image_encoder(x)
         x = self.fc_shared(x)
         return self.critic(x)

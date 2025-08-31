@@ -274,8 +274,7 @@ class PPOAgent:
                 if np.mean(evaluated_returns) >= self.best_score:
                     self.best_score = np.min(evaluated_returns)
                     self.agent_network.save_actor(self.store_path)
-                if verbose:
-                    logging.info(f'Step {steps} eval : Mean [{np.mean(evaluated_returns)}];  Min [{np.min(evaluated_returns)}]; Max [{np.max(evaluated_returns)}]')
+                logging.info(f'Step {steps} eval : Mean [{np.mean(evaluated_returns)}];  Min [{np.min(evaluated_returns)}]; Max [{np.max(evaluated_returns)}]')
 
     @staticmethod
     def evaluate(device, agent_network, env, nr_episodes: int):
