@@ -24,7 +24,8 @@ class PPOAgent:
                  gae_lambda: float,
                  clip_coef: float,
                  value_loss_coef: float,
-                 entropy_loss_coef: float,):
+                 entropy_loss_coef: float,
+                 store_path: str=None ):
         """
         Initialize the PPO algorithm and the parameters it uses.
         Args:
@@ -85,6 +86,7 @@ class PPOAgent:
 
         # keeping track of overall number of steps
         self.global_step = 0
+        self.store_path = store_path
 
     def rollout(self, envs, next_obs, next_dones):
         """
@@ -267,9 +269,9 @@ class PPOAgent:
                 self.train_epoch(verbose=verbose)
             if steps % eval_frequency == 0:
                 evaluated_returns = self.evaluate(self.device, self.agent_network, eval_env, eval_episodes)
-                if np.min(evaluated_returns) >= self.best_score:
+                if np.mean(evaluated_returns) >= self.best_score:
                     self.best_score = np.min(evaluated_returns)
-                    self.agent_network.save_actor()
+                    self.agent_network.save_actor(self.store_path)
                 if verbose:
                     print('')
                 print(f'Step {steps} eval : Mean [{np.mean(evaluated_returns)}];  Min [{np.min(evaluated_returns)}]; Max [{np.max(evaluated_returns)}]')

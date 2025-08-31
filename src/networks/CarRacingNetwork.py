@@ -136,7 +136,8 @@ class CarRacingNetwork(nn.Module):
             'image_encoder': self.image_encoder.state_dict(),
             'fc_shared': self.fc_shared.state_dict(),
             'actor_mean': self.actor_mean.state_dict(),
-            'actor_logstd': self.actor_logstd
+            'actor_logstd': self.actor_logstd,
+            'critic': self.critic.state_dict(),
         }, path)
 
     def load_actor(self, path: str = None):
@@ -155,3 +156,13 @@ class CarRacingNetwork(nn.Module):
         action_scaled = self.low + (action + 1.0) * 0.5 * (self.high - self.low)
         # detach, convert, and fix shape/dtype
         return action_scaled.squeeze(0).detach().cpu().numpy()
+
+    def load_actor_and_critic(self, path: str = None):
+        if path is None:
+            path = f"weights/{self.name}/ppo_actor.pth"
+        checkpoint = torch.load(path)
+        self.image_encoder.load_state_dict(checkpoint['image_encoder'])
+        self.fc_shared.load_state_dict(checkpoint['fc_shared'])
+        self.actor_mean.load_state_dict(checkpoint['actor_mean'])
+        self.actor_logstd = checkpoint['actor_logstd']
+        self.critic.load_state_dict(checkpoint['critic'])

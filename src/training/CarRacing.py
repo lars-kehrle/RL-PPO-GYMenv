@@ -3,6 +3,15 @@ import torch
 import numpy as np
 from src.model.PPOAgent import PPOAgent
 from src.networks.CarRacingNetwork import CarRacingNetwork
+import argparse
+import os
+
+parser = argparse.ArgumentParser(description="Train PPO on CarRacing")
+parser.add_argument("--store_path", type=str, default=None,
+                    help="Optional path to store checkpoints/models")
+
+args = parser.parse_args()
+
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
@@ -34,7 +43,8 @@ agent = PPOAgent(env.observation_space, env.action_space,
                  gae_lambda=0.95,
                  clip_coef=0.2,
                  value_loss_coef=0.5,
-                 entropy_loss_coef=0.01)
+                 entropy_loss_coef=0.01,
+                 store_path=args.store_path)
 
 training_steps = 50000
 agent.train(envs, training_steps, env, 50, 10, False)
