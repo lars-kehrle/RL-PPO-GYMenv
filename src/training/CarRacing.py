@@ -15,8 +15,6 @@ args = parser.parse_args()
 
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-
-device = "cpu"
 print(device)
 num_envs = 1
 
@@ -53,4 +51,4 @@ agent = PPOAgent(env.observation_space, env.action_space,
                  store_path=args.store_path)
 
 training_steps = 50000
-agent.train(env, training_steps, eval_env, 10, 10, False)
+agent.train(env, training_steps, eval_env, 20, 10, False)
