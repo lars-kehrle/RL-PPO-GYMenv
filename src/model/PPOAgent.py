@@ -3,6 +3,7 @@ import torch
 from torch import optim
 import gymnasium as gym
 from torch import nn
+import logging
 
 from src.networks.BaseAgentNetwork import BaseAgentNetwork
 
@@ -87,6 +88,7 @@ class PPOAgent:
         # keeping track of overall number of steps
         self.global_step = 0
         self.store_path = store_path
+        logging.info("started")
 
     def rollout(self, envs, next_obs, next_dones):
         """
@@ -242,7 +244,7 @@ class PPOAgent:
             # display some values if verbose, should best be done using wand or similar instead
 
             if verbose:
-                print(f'p: {policy_loss:7.4} v: {v_loss_scaled:7.4} e:{entropy_loss_scaled:7.4}', end='\r')
+                logging.info(f'p: {policy_loss:7.4} v: {v_loss_scaled:7.4} e:{entropy_loss_scaled:7.4}', end='\r')
 
     def train(self, envs: gym.Env, nr_steps: int, eval_env: gym.Env, eval_frequency: int,
               eval_episodes: int, verbose: bool = False):
@@ -273,8 +275,7 @@ class PPOAgent:
                     self.best_score = np.min(evaluated_returns)
                     self.agent_network.save_actor(self.store_path)
                 if verbose:
-                    print('')
-                print(f'Step {steps} eval : Mean [{np.mean(evaluated_returns)}];  Min [{np.min(evaluated_returns)}]; Max [{np.max(evaluated_returns)}]')
+                    logging.info(f'Step {steps} eval : Mean [{np.mean(evaluated_returns)}];  Min [{np.min(evaluated_returns)}]; Max [{np.max(evaluated_returns)}]')
 
     @staticmethod
     def evaluate(device, agent_network, env, nr_episodes: int):
