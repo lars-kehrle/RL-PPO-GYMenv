@@ -1,0 +1,4 @@
+torch
+numpy==2.2.6
+gymnasium[classic-control]==1.2.0
+ swig==4.3.1.post0
