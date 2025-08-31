@@ -1,8 +1,6 @@
 import torch
-import gymnasium as gym
 from torch import nn
 from torch.distributions import Normal
-from torchvision import transforms
 import numpy as np
 
 from src.networks.BaseAgentNetwork import BaseAgentNetwork
