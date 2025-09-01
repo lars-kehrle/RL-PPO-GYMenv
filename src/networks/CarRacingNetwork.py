@@ -17,52 +17,56 @@ class CarRacingNetwork(nn.Module):
         self.high = high.to(device)
         self.image_encoder = nn.Sequential(
             #96 96 3
-            nn.Conv2d(12, 32, 8, stride=4),
+            nn.Conv2d(4, 16, 8, stride=4),
             nn.ReLU(),
-            nn.Conv2d(32, 64, 4, stride=2),
+            nn.Dropout2d(0.1),
+            nn.Conv2d(16, 32, 4, stride=2),
             nn.ReLU(),
-            nn.Conv2d(64, 64, 3, stride=1),
+            nn.Dropout2d(0.1),
+            nn.Conv2d(32, 64, 3, stride=1),
             nn.ReLU(),
-            nn.Flatten()
-        )
-        self.fc_shared = nn.Sequential(
-            nn.Linear(64*8*8, 512),
-            nn.ReLU(),
-            nn.Linear(512, 256),
-            nn.ReLU()
-        )
-        self.actor_mean = nn.Linear(256, n_action)
-        self.actor_logstd = nn.Parameter(torch.zeros(n_action))  # trainable
-        self.critic = nn.Linear(256, 1)
+            nn.Dropout2d(0.1),
+            nn.Flatten(),
+            nn.Linear(64 * 8 * 8, 512),
+            nn.Dropout(0.2),
+            nn.ReLU())
 
+        self.actor_mean = nn.Sequential(
+            nn.Linear(512, 256),
+            torch.nn.ReLU(),
+            nn.Linear(256, 256),
+            torch.nn.ReLU(),
+            nn.Linear(256, n_action)
+        )
+
+        self.log_std = nn.Parameter(torch.ones(n_action) * np.log(1), requires_grad=False)
+        self.critic = nn.Sequential(
+            nn.Linear(512, 256),
+            torch.nn.ReLU(),
+            nn.Linear(256, 256),
+            torch.nn.ReLU(),
+            nn.Linear(256, 1)
+        )
         self.name = "CartRacing"
 
     def preprocess_obs(self, obs):
-        if obs.ndim == 4:
-            obs = obs.permute(0, 3, 1, 2)  # (stack_size, C, H, W)
-            obs = obs.reshape(-1, 96, 96).unsqueeze(0)
-
-        if obs.ndim == 5:
-            obs = obs.permute(0, 1, 4, 2, 3)
-            batch_size, stack_size, C, H, W = obs.shape
-            obs = obs.reshape(batch_size, stack_size * C, 96, 96)
         obs = obs.float() / 255.0
         return obs
 
     def actor_forward(self, obs):
+        if obs.dim() == 3:
+            obs = obs.unsqueeze(0)
         x = self.preprocess_obs(obs)
         assert torch.isfinite(x).all(), "Input to image_encoder contains NaN or Inf"
         assert not torch.isnan(x).any(), "Input to image_encoder contains NaN or Inf"
         x = self.image_encoder(x)
-        x = self.fc_shared(x)
-        log_std = self.actor_logstd
         mean = self.actor_mean(x).squeeze()
+        log_std = self.log_std
         return mean, log_std
 
     def critic_forward(self, obs):
         x = self.preprocess_obs(obs)
         x = self.image_encoder(x)
-        x = self.fc_shared(x)
         return self.critic(x)
 
     @staticmethod
@@ -135,9 +139,8 @@ class CarRacingNetwork(nn.Module):
         # save the encoder + actor MLP + mean + logstd
         torch.save({
             'image_encoder': self.image_encoder.state_dict(),
-            'fc_shared': self.fc_shared.state_dict(),
             'actor_mean': self.actor_mean.state_dict(),
-            'actor_logstd': self.actor_logstd,
+            'log_std': self.log_std,
             'critic': self.critic.state_dict(),
         }, path)
 
@@ -146,12 +149,12 @@ class CarRacingNetwork(nn.Module):
             path = f"weights/{self.name}/ppo_actor.pth"
         checkpoint = torch.load(path)
         self.image_encoder.load_state_dict(checkpoint['image_encoder'])
-        self.fc_shared.load_state_dict(checkpoint['fc_shared'])
         self.actor_mean.load_state_dict(checkpoint['actor_mean'])
-        self.actor_logstd = checkpoint['actor_logstd']
+        self.log_std = checkpoint['log_std']
         self.eval()
 
     def get_deterministic_action(self, x: torch.Tensor):
+        self.eval()
         mean, _ = self.actor_forward(x)
         action = torch.tanh(mean)  # squash mean
         action_scaled = self.low + (action + 1.0) * 0.5 * (self.high - self.low)
@@ -163,7 +166,6 @@ class CarRacingNetwork(nn.Module):
             path = f"weights/{self.name}/ppo_actor.pth"
         checkpoint = torch.load(path)
         self.image_encoder.load_state_dict(checkpoint['image_encoder'])
-        self.fc_shared.load_state_dict(checkpoint['fc_shared'])
         self.actor_mean.load_state_dict(checkpoint['actor_mean'])
         self.actor_logstd = checkpoint['actor_logstd']
         self.critic.load_state_dict(checkpoint['critic'])

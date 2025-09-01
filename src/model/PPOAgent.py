@@ -288,17 +288,20 @@ class PPOAgent:
             the undiscounted returns
         """
         rewards = []
-        for episode in range(nr_episodes):
-            obs, _ = env.reset()
-            obs_tensor = torch.tensor(obs, dtype=torch.float32).to(device)
-            a = agent_network.get_deterministic_action(obs_tensor)
-            done = False
-            truncated = False
-            episode_reward = 0
-            while not done and not truncated:
-                obs, reward, done, truncated, _ = env.step(a)
+        agent_network.eval()
+        with torch.no_grad():
+            for episode in range(nr_episodes):
+                obs, _ = env.reset()
                 obs_tensor = torch.tensor(obs, dtype=torch.float32).to(device)
                 a = agent_network.get_deterministic_action(obs_tensor)
-                episode_reward += reward
-            rewards.append(episode_reward)
+                done = False
+                truncated = False
+                episode_reward = 0
+                while not done and not truncated:
+                    obs, reward, done, truncated, _ = env.step(a)
+                    obs_tensor = torch.tensor(obs, dtype=torch.float32).to(device)
+                    a = agent_network.get_deterministic_action(obs_tensor)
+                    episode_reward += reward
+                rewards.append(episode_reward)
+        agent_network.train()
         return rewards
