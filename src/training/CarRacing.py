@@ -35,6 +35,7 @@ high = torch.tensor(eval_env.action_space.high, dtype=torch.float32)
 network = CarRacingNetwork(n_action,low,high,device)
 network.to(device)
 
+network.load_actor_and_critic()
 agent = PPOAgent(eval_env.observation_space, eval_env.action_space,
                  num_envs=num_envs,
                  agent_network_cls=network,

@@ -33,18 +33,18 @@ class CarRacingNetwork(nn.Module):
 
         self.actor_mean = nn.Sequential(
             nn.Linear(512, 256),
-            torch.nn.ReLU(),
+            torch.nn.Tanh(),
             nn.Linear(256, 256),
-            torch.nn.ReLU(),
+            torch.nn.Tanh(),
             nn.Linear(256, n_action)
         )
 
         self.log_std = nn.Parameter(torch.ones(n_action) * np.log(1), requires_grad=False)
         self.critic = nn.Sequential(
             nn.Linear(512, 256),
-            torch.nn.ReLU(),
+            torch.nn.Tanh(),
             nn.Linear(256, 256),
-            torch.nn.ReLU(),
+            torch.nn.Tanh(),
             nn.Linear(256, 1)
         )
         self.name = "CartRacing"
@@ -146,7 +146,7 @@ class CarRacingNetwork(nn.Module):
 
     def load_actor(self, path: str = None):
         if path is None:
-            path = f"weights/{self.name}/ppo_actor.pth"
+            path = f"weights/{self.name}/best_ppo_actor.pth"
         checkpoint = torch.load(path)
         self.image_encoder.load_state_dict(checkpoint['image_encoder'])
         self.actor_mean.load_state_dict(checkpoint['actor_mean'])
@@ -163,9 +163,9 @@ class CarRacingNetwork(nn.Module):
 
     def load_actor_and_critic(self, path: str = None):
         if path is None:
-            path = f"weights/{self.name}/ppo_actor.pth"
+            path = f"weights/{self.name}/best_ppo_actor.pth"
         checkpoint = torch.load(path)
         self.image_encoder.load_state_dict(checkpoint['image_encoder'])
         self.actor_mean.load_state_dict(checkpoint['actor_mean'])
-        self.actor_logstd = checkpoint['actor_logstd']
+        self.log_std = checkpoint['log_std']
         self.critic.load_state_dict(checkpoint['critic'])

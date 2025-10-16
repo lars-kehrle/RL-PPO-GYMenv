@@ -5,6 +5,7 @@ from src.networks.CartPoleAgentNetwork import CartPoleAgentNetwork
 from src.model.PPOAgent import PPOAgent
 import torch
 import gymnasium as gym
+from gymnasium.wrappers import FrameStackObservation, GrayscaleObservation
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
@@ -16,6 +17,7 @@ print(env.action_space)
 n_action = env.action_space.shape[0]  # number of continuous actions
 low = torch.tensor(env.action_space.low, dtype=torch.float32)
 high = torch.tensor(env.action_space.high, dtype=torch.float32)
+env = FrameStackObservation(GrayscaleObservation(env), stack_size=4)
 
 network = CarRacingNetwork(n_action,low,high,device)
 network.load_actor()
